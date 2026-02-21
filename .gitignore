@@ -1,0 +1,28 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# pytest / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+dist/
+build/
+
+# ROS build artifacts
+devel/
+logs/
+install/
+.catkin_workspace
+
+# Serialized graph/roadmap files (generated at runtime)
+*.pkl
+
+# IDE
+.vscode/
+.idea/
+*.swp
