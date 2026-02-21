@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>approx_manifold_prm</name>
+  <version>0.1.0</version>
+  <description>
+    Approximate Manifold Probabilistic Roadmap (近似流形概率路线图) for
+    constrained robot trajectory planning in automated chemistry laboratories.
+    Implements the method from Chapter 2 of the paper:
+    "近似流形概率路线图的机器人受约束轨迹规划".
+  </description>
+
+  <maintainer email="user@example.com">user</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>rospy</depend>
+  <depend>std_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>trajectory_msgs</depend>
+  <depend>moveit_ros_planning_interface</depend>
+  <depend>moveit_msgs</depend>
+  <depend>tf2_ros</depend>
+  <depend>tf2_geometry_msgs</depend>
+
+  <exec_depend>python3-numpy</exec_depend>
+  <exec_depend>python3-scipy</exec_depend>
+  <exec_depend>python3-networkx</exec_depend>
+  <exec_depend>python3-yaml</exec_depend>
+  <exec_depend>python3-sklearn</exec_depend>
+</package>

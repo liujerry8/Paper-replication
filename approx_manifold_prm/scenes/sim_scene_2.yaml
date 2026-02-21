@@ -1,0 +1,70 @@
+# sim_scene_2.yaml
+#
+# Simulation Scene 2 from the paper (Section 2.3.1):
+#   "仿真场景 2": liquid dispenser (液体进样器) + liquid extractor (液体抽取器).
+#
+# The arm must pick up a tube rack and place it on the liquid extractor
+# platform while keeping the rack upright.
+
+name: "sim_scene_2"
+description: >
+  Simulation scene 2: liquid dispenser and liquid extractor.
+  The robot arm must pick up a tube rack from the robot platform and place it
+  on the liquid extractor platform while keeping the tube rack upright.
+
+obstacles:
+
+  # ── Workbench ─────────────────────────────────────────────────────────────
+  - name: workbench
+    type: box
+    size: [1.40, 0.80, 0.04]
+    pose:
+      xyz: [0.55, 0.00, 0.36]
+      rpy: [0.0, 0.0, 0.0]
+
+  # ── Liquid dispenser (液体进样器) ─────────────────────────────────────────
+  - name: liquid_dispenser_body
+    type: box
+    size: [0.20, 0.18, 0.30]
+    pose:
+      xyz: [0.45, -0.20, 0.54]
+      rpy: [0.0, 0.0, 0.0]
+
+  - name: liquid_dispenser_nozzle
+    type: cylinder
+    radius: 0.025
+    height: 0.12
+    pose:
+      xyz: [0.45, -0.20, 0.75]
+      rpy: [0.0, 0.0, 0.0]
+
+  # ── Liquid extractor (液体抽取器) ─────────────────────────────────────────
+  - name: liquid_extractor_body
+    type: box
+    size: [0.25, 0.22, 0.28]
+    pose:
+      xyz: [0.65, 0.15, 0.52]
+      rpy: [0.0, 0.0, 0.0]
+
+  - name: liquid_extractor_platform
+    type: box
+    size: [0.20, 0.18, 0.03]
+    pose:
+      xyz: [0.65, 0.15, 0.67]
+      rpy: [0.0, 0.0, 0.0]
+
+  - name: liquid_extractor_tube
+    type: cylinder
+    radius: 0.015
+    height: 0.15
+    pose:
+      xyz: [0.65, 0.15, 0.78]
+      rpy: [0.0, 0.0, 0.0]
+
+  # ── Tube rack (试管架) on the robot platform ──────────────────────────────
+  - name: tube_rack_source
+    type: box
+    size: [0.12, 0.10, 0.06]
+    pose:
+      xyz: [0.30, 0.00, 0.41]
+      rpy: [0.0, 0.0, 0.0]

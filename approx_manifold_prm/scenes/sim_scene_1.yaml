@@ -1,0 +1,103 @@
+# sim_scene_1.yaml
+#
+# Simulation Scene 1 from the paper (Section 2.3.1):
+#   "仿真场景 1": powder dispenser (粉末进样器), liquid dispenser (液体进样器),
+#   UV spectrometer (紫外光谱检测器).
+#
+# The arm must pick up a reagent bottle from the tube rack and place it at
+# the liquid dispenser's round recess while keeping the bottle upright.
+#
+# Coordinate convention (world frame):
+#   X  : forward (away from robot base)
+#   Y  : lateral (left when facing robot)
+#   Z  : up
+#
+# All dimensions in metres, all angles in radians.
+
+name: "sim_scene_1"
+description: >
+  Simulation scene 1: powder dispenser, liquid dispenser, UV spectrometer.
+  The robot arm (UR5e mounted on a mobile base) must move a reagent bottle
+  from the tube rack to the liquid dispenser while keeping the bottle upright.
+
+obstacles:
+
+  # ── Workbench ─────────────────────────────────────────────────────────────
+  - name: workbench
+    type: box
+    size: [1.40, 0.80, 0.04]
+    pose:
+      xyz: [0.55, 0.00, 0.36]
+      rpy: [0.0, 0.0, 0.0]
+
+  # ── Powder dispenser (粉末进样器) ──────────────────────────────────────────
+  - name: powder_dispenser_body
+    type: box
+    size: [0.18, 0.15, 0.35]
+    pose:
+      xyz: [0.35, -0.25, 0.57]
+      rpy: [0.0, 0.0, 0.0]
+
+  - name: powder_dispenser_funnel
+    type: cylinder
+    radius: 0.05
+    height: 0.10
+    pose:
+      xyz: [0.35, -0.25, 0.80]
+      rpy: [0.0, 0.0, 0.0]
+
+  # ── Liquid dispenser (液体进样器) ─────────────────────────────────────────
+  - name: liquid_dispenser_body
+    type: box
+    size: [0.20, 0.18, 0.30]
+    pose:
+      xyz: [0.55, -0.15, 0.54]
+      rpy: [0.0, 0.0, 0.0]
+
+  - name: liquid_dispenser_nozzle
+    type: cylinder
+    radius: 0.025
+    height: 0.12
+    pose:
+      xyz: [0.55, -0.15, 0.75]
+      rpy: [0.0, 0.0, 0.0]
+
+  # ── UV spectrometer (紫外光谱检测器) ──────────────────────────────────────
+  - name: uv_spectrometer
+    type: box
+    size: [0.22, 0.15, 0.20]
+    pose:
+      xyz: [0.70, 0.20, 0.49]
+      rpy: [0.0, 0.0, 0.0]
+
+  # ── Tube rack (试管架) with reagent bottles ────────────────────────────────
+  - name: tube_rack
+    type: box
+    size: [0.12, 0.10, 0.06]
+    pose:
+      xyz: [0.40, 0.20, 0.41]
+      rpy: [0.0, 0.0, 0.0]
+
+  - name: reagent_bottle_1
+    type: cylinder
+    radius: 0.018
+    height: 0.12
+    pose:
+      xyz: [0.38, 0.18, 0.50]
+      rpy: [0.0, 0.0, 0.0]
+
+  - name: reagent_bottle_2
+    type: cylinder
+    radius: 0.018
+    height: 0.12
+    pose:
+      xyz: [0.42, 0.18, 0.50]
+      rpy: [0.0, 0.0, 0.0]
+
+  - name: reagent_bottle_3
+    type: cylinder
+    radius: 0.018
+    height: 0.12
+    pose:
+      xyz: [0.40, 0.22, 0.50]
+      rpy: [0.0, 0.0, 0.0]

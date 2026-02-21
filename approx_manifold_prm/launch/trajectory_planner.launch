@@ -1,0 +1,39 @@
+<!-- trajectory_planner.launch
+     Start the online LazyPRM trajectory planning node.
+
+     Prerequisites:
+       1. roslaunch ur_robot_driver ur5e_bringup.launch  (or MoveIt! sim)
+       2. roslaunch ur5e_moveit_config moveit_planning_execution.launch
+       3. Approximate graph and roadmap files built offline
+
+     Usage:
+       roslaunch approx_manifold_prm trajectory_planner.launch \
+           graph_file:=/tmp/approx_graph.pkl \
+           roadmap_file:=/tmp/roadmap.pkl
+-->
+<launch>
+  <arg name="graph_file"   default="/tmp/approx_graph.pkl"  doc="Approx graph"/>
+  <arg name="roadmap_file" default="/tmp/roadmap.pkl"        doc="PRM* roadmap"/>
+  <arg name="planning_group"             default="manipulator"/>
+  <arg name="max_velocity_scaling"       default="1.0"/>
+  <arg name="max_acceleration_scaling"   default="1.0"/>
+  <arg name="time_limit"                 default="10.0"/>
+  <arg name="connect_k"                  default="10"/>
+  <arg name="scene_file" default=""
+       doc="YAML scene file path; if set, obstacles are loaded into MoveIt! at startup"/>
+
+  <rosparam file="$(find approx_manifold_prm)/config/robot_params.yaml"
+            command="load"/>
+
+  <node pkg="approx_manifold_prm" type="trajectory_planner_node.py"
+        name="trajectory_planner" output="screen">
+    <param name="graph_file"                 value="$(arg graph_file)"/>
+    <param name="roadmap_file"               value="$(arg roadmap_file)"/>
+    <param name="planning_group"             value="$(arg planning_group)"/>
+    <param name="max_velocity_scaling"       value="$(arg max_velocity_scaling)"/>
+    <param name="max_acceleration_scaling"   value="$(arg max_acceleration_scaling)"/>
+    <param name="time_limit"                 value="$(arg time_limit)"/>
+    <param name="connect_k"                  value="$(arg connect_k)"/>
+    <param name="scene_file"                 value="$(arg scene_file)"/>
+  </node>
+</launch>

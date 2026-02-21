@@ -1,0 +1,46 @@
+# robot_params.yaml
+# Configuration for the UR5e constrained trajectory planner.
+# Load with: rosparam load $(find approx_manifold_prm)/config/robot_params.yaml
+
+# UR5e joint limits (radians)
+ur5e_joint_limits:
+  shoulder_pan_joint:  [-6.2832, 6.2832]
+  shoulder_lift_joint: [-6.2832, 6.2832]
+  elbow_joint:         [-3.1416, 3.1416]
+  wrist_1_joint:       [-6.2832, 6.2832]
+  wrist_2_joint:       [-6.2832, 6.2832]
+  wrist_3_joint:       [-6.2832, 6.2832]
+
+# End-effector upright constraint threshold  (r_x^2 <= delta, r_y^2 <= delta)
+# delta = 0.01 corresponds to the inequality constraint in the paper (Section 2.3)
+constraint_delta: 0.01
+
+# Approximate manifold graph construction parameters
+approx_graph:
+  n_c: 1000          # Target number of vertices (use 10000+ for real experiments)
+  n_e: 5             # Maximum edges per vertex
+  diversity_epsilon: 0.05    # eq. 2.6
+  diversity_rho: 0.05        # eq. 2.8
+  diversity_alpha_deg: 30.0  # eq. 2.7 (degrees)
+  projection_tol: 1.0e-4
+  projection_max_iter: 50
+  edge_validity_zeta: 1.0e-3
+  edge_validity_samples: 10
+
+# PRM* roadmap construction parameters
+prm_star:
+  max_time: 300.0             # Maximum offline planning time (seconds)
+  convergence_window: 5
+  convergence_threshold: 0.10  # 10% relative change threshold (Section 2.3)
+
+# LazyPRM online planning parameters
+lazy_prm:
+  connect_k: 10        # k nearest neighbours for start/goal connection
+  max_iterations: 100
+  time_limit: 10.0     # Maximum online planning time (seconds)
+
+# MoveIt! trajectory post-processing
+moveit:
+  planning_group: manipulator
+  max_velocity_scaling: 1.0
+  max_acceleration_scaling: 1.0
