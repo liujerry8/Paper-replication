@@ -1,0 +1,31 @@
+<!-- build_approx_graph.launch
+     Build the approximate manifold graph offline.
+     Run ONCE (or when the constraint changes).
+
+     Usage:
+       roslaunch approx_manifold_prm build_approx_graph.launch n_c:=1000 n_e:=5
+-->
+<launch>
+  <!-- Arguments with defaults from the paper's experiments -->
+  <arg name="n_c"     default="1000"                    doc="Number of vertices"/>
+  <arg name="n_e"     default="5"                       doc="Max edges per vertex"/>
+  <arg name="output"  default="/tmp/approx_graph.pkl"   doc="Output file path"/>
+  <arg name="delta"   default="0.01"                    doc="Constraint threshold"/>
+  <arg name="eps"     default="0.05"                    doc="Diversity epsilon"/>
+  <arg name="rho"     default="0.05"                    doc="Diversity rho"/>
+  <arg name="alpha"   default="30.0"                    doc="Diversity alpha (deg)"/>
+
+  <rosparam file="$(find approx_manifold_prm)/config/robot_params.yaml"
+            command="load"/>
+
+  <node pkg="approx_manifold_prm" type="build_approx_graph.py"
+        name="build_approx_graph" output="screen" required="true">
+    <param name="n_c"       value="$(arg n_c)"/>
+    <param name="n_e"       value="$(arg n_e)"/>
+    <param name="output"    value="$(arg output)"/>
+    <param name="delta"     value="$(arg delta)"/>
+    <param name="eps"       value="$(arg eps)"/>
+    <param name="rho"       value="$(arg rho)"/>
+    <param name="alpha_deg" value="$(arg alpha)"/>
+  </node>
+</launch>

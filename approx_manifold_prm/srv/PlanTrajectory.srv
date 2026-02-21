@@ -1,0 +1,14 @@
+# PlanTrajectory.srv
+# Service for online LazyPRM trajectory planning.
+
+# Request
+float64[] start_joints      # Start joint configuration (6 values for UR5e)
+float64[] goal_joints       # Goal  joint configuration (6 values for UR5e)
+float64   time_limit        # Maximum planning time in seconds (0 = use node param)
+
+---
+# Response
+bool                       success           # True if a valid trajectory was found
+float64                    planning_time_ms  # Actual planning time in milliseconds
+moveit_msgs/RobotTrajectory trajectory       # Time-parameterized joint trajectory
+string                     message           # Human-readable status/error message
