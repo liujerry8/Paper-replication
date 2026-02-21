@@ -268,6 +268,10 @@ cd ~/catkin_ws/src
 # Copy this package into src/
 cp -r /path/to/approx_manifold_prm .
 cd ~/catkin_ws
+
+# Install all declared dependencies (including ur5e_moveit_config, ur_robot_driver, etc.)
+rosdep install --from-paths src --ignore-src -r -y
+
 catkin_make
 source devel/setup.bash
 ```
