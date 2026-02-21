@@ -19,6 +19,8 @@
   <arg name="max_acceleration_scaling"   default="1.0"/>
   <arg name="time_limit"                 default="10.0"/>
   <arg name="connect_k"                  default="10"/>
+  <arg name="scene_file" default=""
+       doc="YAML scene file path; if set, obstacles are loaded into MoveIt! at startup"/>
 
   <rosparam file="$(find approx_manifold_prm)/config/robot_params.yaml"
             command="load"/>
@@ -32,5 +34,6 @@
     <param name="max_acceleration_scaling"   value="$(arg max_acceleration_scaling)"/>
     <param name="time_limit"                 value="$(arg time_limit)"/>
     <param name="connect_k"                  value="$(arg connect_k)"/>
+    <param name="scene_file"                 value="$(arg scene_file)"/>
   </node>
 </launch>

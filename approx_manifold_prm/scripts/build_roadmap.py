@@ -87,6 +87,9 @@ def main():
                         help='Maximum PRM* planning time in seconds')
     parser.add_argument('--convergence_threshold', type=float, default=0.10,
                         help='Stop when relative cost change < threshold (default 0.10)')
+    parser.add_argument('--scene', type=str, default=None,
+                        help='Path to a YAML scene file for standalone geometric collision '
+                             'checking (no MoveIt! required for collision detection)')
     args = parser.parse_args()
 
     move_group = None
@@ -117,6 +120,11 @@ def main():
     # Set up collision checker
     if move_group is not None:
         checker = MoveItCollisionChecker(move_group)
+    elif args.scene is not None:
+        from scene_loader import SceneLoader, SceneCollisionChecker
+        objects, meta = SceneLoader.from_yaml(args.scene)
+        print(f"[scene] Loaded {len(objects)} obstacle(s) from {args.scene!r}")
+        checker = SceneCollisionChecker(objects)
     else:
         checker = StubCollisionChecker()
 

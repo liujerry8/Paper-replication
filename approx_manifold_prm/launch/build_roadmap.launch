@@ -10,6 +10,8 @@
   <arg name="output"   default="/tmp/roadmap.pkl"      doc="Output roadmap file"/>
   <arg name="max_time" default="300.0"                 doc="PRM* time budget (s)"/>
   <arg name="convergence_threshold" default="0.10"     doc="Convergence threshold"/>
+  <arg name="scene_file" default=""
+       doc="Path to a YAML scene file for geometric collision checking (no MoveIt! required)"/>
 
   <rosparam file="$(find approx_manifold_prm)/config/robot_params.yaml"
             command="load"/>
@@ -20,5 +22,6 @@
     <param name="output"                 value="$(arg output)"/>
     <param name="max_time"               value="$(arg max_time)"/>
     <param name="convergence_threshold"  value="$(arg convergence_threshold)"/>
+    <param name="scene"                  value="$(arg scene_file)"/>
   </node>
 </launch>

@@ -101,7 +101,7 @@ The proposed method achieves 100% success with the shortest planning time while 
 - MoveIt! (`ros-noetic-moveit`)
 - UR Robot Driver (`ros-noetic-ur-robot-driver`)
 - UR5e MoveIt! config (`ros-noetic-ur5e-moveit-config`)
-- Python 3.8+, with packages: `numpy`, `scipy`, `networkx`, `scikit-learn`
+- Python 3.8+, with packages: `numpy`, `scipy`, `networkx`, `scikit-learn`, `pyyaml`
 
 ```bash
 sudo apt-get install -y \
@@ -110,8 +110,127 @@ sudo apt-get install -y \
     ros-noetic-ur5e-moveit-config \
     ros-noetic-tf2-geometry-msgs
 
-pip3 install numpy scipy networkx scikit-learn
+pip3 install numpy scipy networkx scikit-learn pyyaml
 ```
+
+---
+
+## 场景文件 / Scene Files
+
+### 场景文件格式 / Scene File Format
+
+Obstacles are described in a YAML file.  Three shape types are supported:
+`box`, `sphere`, and `cylinder`.
+
+```yaml
+name: "my_lab_scene"
+description: "Optional description"
+obstacles:
+  - name: table
+    type: box
+    size: [1.2, 0.8, 0.05]        # [x, y, z] extents in metres
+    pose:
+      xyz: [0.55, 0.0, 0.36]      # position in world frame [m]
+      rpy: [0.0,  0.0, 0.0]       # roll/pitch/yaw [rad]
+
+  - name: column
+    type: cylinder
+    radius: 0.05                  # metres
+    height: 0.30                  # metres
+    pose:
+      xyz: [0.60, 0.10, 0.55]
+      rpy: [0.0, 0.0, 0.0]
+
+  - name: ball_valve
+    type: sphere
+    radius: 0.03                  # metres
+    pose:
+      xyz: [0.30, -0.10, 0.60]
+      rpy: [0.0, 0.0, 0.0]
+```
+
+Two ready-made scene files (from the paper's experiments) are included in `scenes/`:
+
+| File | Description |
+|------|-------------|
+| `scenes/sim_scene_1.yaml` | 仿真场景1: powder dispenser, liquid dispenser, UV spectrometer |
+| `scenes/sim_scene_2.yaml` | 仿真场景2: liquid dispenser + liquid extractor |
+
+### 快速使用（无需 ROS）/ Quick Start — No ROS Required
+
+`run_planner.py` runs the full pipeline (build graph → build roadmap → LazyPRM query) using geometric collision checking against a scene file. **No ROS or MoveIt! installation needed.**
+
+```bash
+cd approx_manifold_prm
+
+# Plan a path using sim_scene_1
+python3 scripts/run_planner.py \
+    --scene  scenes/sim_scene_1.yaml \
+    --start  "0,0,0,0,0,0" \
+    --goal   "0.3,-0.2,0.1,-0.1,0.1,0" \
+    --n_c    500 \
+    --n_e    3 \
+    --output /tmp/path.json
+```
+
+**Reuse a pre-built graph and roadmap** (much faster for repeated queries):
+
+```bash
+# First run: build and save
+python3 scripts/run_planner.py \
+    --scene         scenes/sim_scene_1.yaml \
+    --start         "0,0,0,0,0,0" \
+    --goal          "0.3,-0.2,0.1,-0.1,0.1,0" \
+    --save_graph    /tmp/approx_graph.pkl \
+    --save_roadmap  /tmp/roadmap.pkl
+
+# Subsequent runs: load pre-built files
+python3 scripts/run_planner.py \
+    --scene    scenes/sim_scene_1.yaml \
+    --graph    /tmp/approx_graph.pkl \
+    --roadmap  /tmp/roadmap.pkl \
+    --start    "0,0,0,0,0,0" \
+    --goal     "0.3,-0.2,0.1,-0.1,0.1,0"
+```
+
+**Available arguments:**
+
+| Argument | Default | Description |
+|----------|---------|-------------|
+| `--scene` | *(required)* | Path to YAML scene file |
+| `--start` | *(required)* | Start joints (6 comma-separated radians) |
+| `--goal` | *(required)* | Goal joints (6 comma-separated radians) |
+| `--graph` | *(auto-build)* | Pre-built approximate graph `.pkl` |
+| `--roadmap` | *(auto-build)* | Pre-built PRM* roadmap `.pkl` |
+| `--save_graph` | — | Save newly-built graph to this path |
+| `--save_roadmap` | — | Save newly-built roadmap to this path |
+| `--n_c` | 500 | Graph vertex count when building |
+| `--n_e` | 3 | Max edges per vertex when building |
+| `--graph_time` | 30 s | PRM* roadmap build time budget |
+| `--plan_time` | 10 s | LazyPRM online query time limit |
+| `--output` | — | Save planned path as JSON |
+
+**Expected output:**
+```
+Scene 'sim_scene_1': 10 obstacle(s) loaded
+  • workbench (box)
+  • powder_dispenser_body (box)
+  ...
+Start and goal configurations are collision-free ✓
+Building approximate manifold graph (n_c=500, n_e=3) …
+  Done in 35.2s: 500 vertices, 742 edges
+Building PRM* roadmap (max_time=30.0s) …
+  Done in 30.0s: 287 nodes, 1453 edges
+
+[SUCCESS] Path found in 45.3 ms, 7 waypoints:
+   WP        j1        j2        j3        j4        j5        j6
+  ──────────────────────────────────────────────────────────────────
+    0    0.0000    0.0000    0.0000    0.0000    0.0000    0.0000
+    1    0.0523   -0.0314    0.0178   -0.0214    0.0312    0.0000
+    ...
+```
+
+---
 
 ### 2. 创建工作空间 / Create Catkin Workspace
 
@@ -160,13 +279,21 @@ Expected time (from Table 2.1 in the paper):
 
 ### 5. 离线阶段：构建路线图 / Offline: Build PRM* Roadmap
 
-First load the scene reconstruction (NeRF-SLAM output or manually added collision objects):
+**Option A – Using a scene file** (geometric collision checking, no extra setup):
 
 ```bash
-# Add collision objects to the MoveIt! planning scene, e.g.:
-rosrun approx_manifold_prm load_scene.py --scene config/lab_scene.yaml
+roslaunch approx_manifold_prm build_roadmap.launch \
+    graph:=/tmp/approx_graph.pkl \
+    output:=/tmp/roadmap.pkl \
+    max_time:=300 \
+    scene_file:=$(rospack find approx_manifold_prm)/scenes/sim_scene_1.yaml
+```
 
-# Build the roadmap (give plenty of time for convergence)
+**Option B – Using MoveIt! planning scene** (requires scene reconstruction first):
+
+```bash
+# Load collision objects from YAML into MoveIt!
+# (NeRF-SLAM output or manually added objects)
 roslaunch approx_manifold_prm build_roadmap.launch \
     graph:=/tmp/approx_graph.pkl \
     output:=/tmp/roadmap.pkl \
@@ -175,12 +302,13 @@ roslaunch approx_manifold_prm build_roadmap.launch \
 
 ### 6. 在线规划 / Online Planning
 
-Start the trajectory planner node:
+Start the trajectory planner node, optionally loading a scene file at startup:
 
 ```bash
 roslaunch approx_manifold_prm trajectory_planner.launch \
     graph_file:=/tmp/approx_graph.pkl \
-    roadmap_file:=/tmp/roadmap.pkl
+    roadmap_file:=/tmp/roadmap.pkl \
+    scene_file:=$(rospack find approx_manifold_prm)/scenes/sim_scene_1.yaml
 ```
 
 Send a planning request:
@@ -220,14 +348,19 @@ approx_manifold_prm/
 │   └── robot_params.yaml          # All algorithm parameters
 ├── launch/
 │   ├── build_approx_graph.launch  # Offline: build approximate graph
-│   ├── build_roadmap.launch       # Offline: build PRM* roadmap
-│   └── trajectory_planner.launch  # Online: start planning node
+│   ├── build_roadmap.launch       # Offline: build PRM* roadmap (scene_file arg)
+│   └── trajectory_planner.launch  # Online: start planning node (scene_file arg)
+├── scenes/
+│   ├── sim_scene_1.yaml           # Paper's simulation scene 1
+│   └── sim_scene_2.yaml           # Paper's simulation scene 2
 ├── scripts/
 │   ├── approx_manifold_graph.py   # Core: G=(V,E) construction
 │   ├── prm_star.py                # PRM* offline roadmap
 │   ├── lazy_prm.py                # LazyPRM online planner
+│   ├── scene_loader.py            # Scene file parser + geometric collision checker
+│   ├── run_planner.py             # End-to-end CLI (no ROS needed)
 │   ├── build_approx_graph.py      # CLI: build graph (offline)
-│   ├── build_roadmap.py           # CLI: build roadmap (offline)
+│   ├── build_roadmap.py           # CLI: build roadmap (offline, --scene arg)
 │   └── trajectory_planner_node.py # ROS node: online planning service
 ├── srv/
 │   └── PlanTrajectory.srv         # ROS service definition
@@ -235,7 +368,8 @@ approx_manifold_prm/
 │   └── approx_manifold_prm/
 │       └── __init__.py
 └── tests/
-    └── test_approx_manifold_graph.py  # Unit tests (no ROS required)
+    ├── test_approx_manifold_graph.py  # Unit tests (no ROS required)
+    └── test_scene_loader.py           # Scene loading & collision checker tests
 ```
 
 ---

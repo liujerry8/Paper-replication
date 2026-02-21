@@ -162,12 +162,19 @@ class TrajectoryPlannerNode:
         graph_file = rospy.get_param('~graph_file', '/tmp/approx_graph.pkl')
         roadmap_file = rospy.get_param('~roadmap_file', '/tmp/roadmap.pkl')
         group_name = rospy.get_param('~planning_group', 'manipulator')
+        scene_file = rospy.get_param('~scene_file', '')
         self.vel_scale = rospy.get_param('~max_velocity_scaling', 1.0)
         self.acc_scale = rospy.get_param('~max_acceleration_scaling', 1.0)
 
         # MoveIt! setup
         self.move_group = MoveGroupCommander(group_name)
         self.scene = PlanningSceneInterface()
+
+        # Load scene from file (if provided)
+        if scene_file:
+            from scene_loader import SceneLoader
+            SceneLoader.load_into_moveit(scene_file, self.scene)
+            rospy.loginfo(f'Scene loaded from {scene_file!r}')
 
         # Load approximate manifold graph
         constraint = UR5eUprightConstraint(move_group=self.move_group)
