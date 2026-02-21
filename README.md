@@ -100,8 +100,10 @@ The proposed method achieves 100% success with the shortest planning time while 
 - ROS Noetic (`ros-noetic-desktop-full`)
 - MoveIt! (`ros-noetic-moveit`)
 - UR Robot Driver (`ros-noetic-ur-robot-driver`)
-- UR5e MoveIt! config (`ros-noetic-ur5e-moveit-config`)
+- UR5e MoveIt! config (`ur5e_moveit_config`) — from the [`universal_robot`](https://github.com/ros-industrial/universal_robot) meta-package
 - Python 3.8+, with packages: `numpy`, `scipy`, `networkx`, `scikit-learn`, `pyyaml`
+
+**方式 A — 通过 apt 安装 / Install via apt (recommended):**
 
 ```bash
 sudo apt-get install -y \
@@ -111,6 +113,32 @@ sudo apt-get install -y \
     ros-noetic-tf2-geometry-msgs
 
 pip3 install numpy scipy networkx scikit-learn pyyaml
+```
+
+> **注意 / Note:** `ros-noetic-ur5e-moveit-config` is provided by the
+> [`universal_robot`](https://github.com/ros-industrial/universal_robot)
+> meta-package.  If the apt package is not available in your sources, use
+> 方式 B below.
+
+**方式 B — 从源码安装 / Install from source:**
+
+If `ros-noetic-ur5e-moveit-config` is not found via apt, clone the
+`universal_robot` repository into your catkin workspace:
+
+```bash
+cd ~/catkin_ws/src
+git clone -b noetic-devel https://github.com/ros-industrial/universal_robot.git
+cd ~/catkin_ws
+rosdep install --from-paths src --ignore-src -r -y
+catkin_make
+source devel/setup.bash
+```
+
+This provides both `ur_gazebo` and `ur5e_moveit_config` (among other
+packages).  You can verify the package is available with:
+
+```bash
+rospack find ur5e_moveit_config
 ```
 
 ---
@@ -426,6 +454,60 @@ rosrun moveit_commander moveit_commander_cmdline.py
 > planner PRMstar
 > go [1.0 -1.0 0.5 -1.0 0.5 0.0]
 ```
+
+---
+
+## 常见问题 / Troubleshooting
+
+### `RLException: [moveit_planning_execution.launch] is neither a launch file in package [ur5e_moveit_config] …`
+
+This error means the `ur5e_moveit_config` ROS package is not installed or
+not on ROS's package path.  It typically happens when `ur_gazebo` was
+installed (e.g. via the `universal_robot` meta-package) but
+`ur5e_moveit_config` was not.
+
+`ur_gazebo` and `ur5e_moveit_config` are **separate packages** inside the
+[`universal_robot`](https://github.com/ros-industrial/universal_robot)
+meta-package.  `ur_gazebo` provides the Gazebo simulation (which is why
+`roslaunch ur_gazebo ur5e_bringup.launch` succeeds), while
+`ur5e_moveit_config` provides the MoveIt! configuration and launch files
+needed for motion planning.
+
+**Fix:**
+
+1. Install `ur5e_moveit_config` via apt:
+
+   ```bash
+   sudo apt-get install ros-noetic-ur5e-moveit-config
+   ```
+
+   If the apt package is unavailable, install from source instead:
+
+   ```bash
+   cd ~/catkin_ws/src
+   git clone -b noetic-devel https://github.com/ros-industrial/universal_robot.git
+   cd ~/catkin_ws
+   rosdep install --from-paths src --ignore-src -r -y
+   catkin_make
+   ```
+
+2. Source the workspace:
+
+   ```bash
+   source ~/catkin_ws/devel/setup.bash
+   ```
+
+3. Verify the package is found:
+
+   ```bash
+   rospack find ur5e_moveit_config
+   ```
+
+4. Retry:
+
+   ```bash
+   roslaunch ur5e_moveit_config moveit_planning_execution.launch sim:=true
+   ```
 
 ---
 

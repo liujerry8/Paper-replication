@@ -4,6 +4,9 @@
      Prerequisites:
        1. roslaunch ur_robot_driver ur5e_bringup.launch  (or MoveIt! sim)
        2. roslaunch ur5e_moveit_config moveit_planning_execution.launch
+          (install via: sudo apt-get install ros-noetic-ur5e-moveit-config,
+           or clone https://github.com/ros-industrial/universal_robot into
+           your catkin workspace — see README troubleshooting section)
        3. Approximate graph and roadmap files built offline
 
      Usage:
