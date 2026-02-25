@@ -90,12 +90,22 @@ def main():
     parser.add_argument('--scene', type=str, default=None,
                         help='Path to a YAML scene file for standalone geometric collision '
                              'checking (no MoveIt! required for collision detection)')
-    args = parser.parse_args()
+    # Filter out ROS remapping arguments (e.g. __name:=..., __log:=...)
+    if ROS_AVAILABLE:
+        args = parser.parse_args(rospy.myargv()[1:])
+    else:
+        args = parser.parse_args()
 
     move_group = None
     if ROS_AVAILABLE:
         rospy.init_node('build_roadmap', anonymous=True)
         moveit_commander.roscpp_initialize(sys.argv)
+        # Override with ROS parameter server values (set by launch files)
+        args.graph = rospy.get_param('~graph', args.graph)
+        args.output = rospy.get_param('~output', args.output)
+        args.max_time = rospy.get_param('~max_time', args.max_time)
+        args.convergence_threshold = rospy.get_param('~convergence_threshold', args.convergence_threshold)
+        args.scene = rospy.get_param('~scene', args.scene)
         try:
             move_group = moveit_commander.MoveGroupCommander('manipulator')
             rospy.loginfo('MoveIt! move group initialized.')

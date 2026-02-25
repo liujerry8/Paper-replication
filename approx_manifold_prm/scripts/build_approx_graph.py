@@ -140,12 +140,24 @@ def main():
                         help='Diversity parameter rho (eq. 2.8)')
     parser.add_argument('--alpha_deg', type=float, default=30.0,
                         help='Diversity parameter alpha in degrees (eq. 2.7)')
-    args = parser.parse_args()
+    # Filter out ROS remapping arguments (e.g. __name:=..., __log:=...)
+    if ROS_AVAILABLE:
+        args = parser.parse_args(rospy.myargv()[1:])
+    else:
+        args = parser.parse_args()
 
     move_group = None
     if ROS_AVAILABLE:
         rospy.init_node('build_approx_graph', anonymous=True)
         moveit_commander.roscpp_initialize(sys.argv)
+        # Override with ROS parameter server values (set by launch files)
+        args.n_c = rospy.get_param('~n_c', args.n_c)
+        args.n_e = rospy.get_param('~n_e', args.n_e)
+        args.output = rospy.get_param('~output', args.output)
+        args.delta = rospy.get_param('~delta', args.delta)
+        args.eps = rospy.get_param('~eps', args.eps)
+        args.rho = rospy.get_param('~rho', args.rho)
+        args.alpha_deg = rospy.get_param('~alpha_deg', args.alpha_deg)
         try:
             move_group = moveit_commander.MoveGroupCommander('manipulator')
             rospy.loginfo('MoveIt! move group initialized.')
