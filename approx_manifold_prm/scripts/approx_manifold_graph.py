@@ -317,11 +317,12 @@ class ApproximateManifoldGraph:
             align = np.linalg.norm(Phi_i.T @ Phi_j)      # eq. 2.7 LHS
             tangent_dist = np.linalg.norm(u_ij)           # eq. 2.8 LHS
 
-            # x_i is NOT diverse if ANY of the three conditions fails
+            # x_i is NOT diverse only when ALL three criteria say it is
+            # too similar to x_j (i.e. none of the diversity conditions hold)
             if not (
                 dist_to_plane > self.eps          # eq. 2.6
-                and align < np.cos(self.alpha)    # eq. 2.7
-                and tangent_dist > self.rho       # eq. 2.8
+                or align < np.cos(self.alpha)     # eq. 2.7
+                or tangent_dist > self.rho        # eq. 2.8
             ):
                 return False
         return True

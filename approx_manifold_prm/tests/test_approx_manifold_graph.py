@@ -185,6 +185,16 @@ class TestGraphBuild(unittest.TestCase):
         # Some edges should be present (not every pair will be valid)
         self.assertGreaterEqual(total_edges, 0)
 
+    def test_vertex_set_reaches_target(self):
+        """Diversity check should allow the vertex set to reach n_c."""
+        import warnings
+        np.random.seed(42)
+        g = make_circle_graph()
+        with warnings.catch_warnings():
+            warnings.simplefilter('error', UserWarning)
+            g._build_vertex_set(n_c=20)
+        self.assertEqual(len(g.vertices), 20)
+
     def test_save_load(self):
         import tempfile
         np.random.seed(5)
