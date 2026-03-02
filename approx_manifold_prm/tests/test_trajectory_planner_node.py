@@ -180,6 +180,58 @@ class TestPlanCbLogic(unittest.TestCase):
         self.assertIn('resp.message', cb_body,
                       '_plan_cb should set resp.message')
 
+    def test_plan_cb_has_exception_handling(self):
+        """_plan_cb should wrap the planning call in try/except."""
+        node_path = os.path.join(SCRIPTS_DIR, 'trajectory_planner_node.py')
+        with open(node_path) as f:
+            source = f.read()
+
+        cb_start = source.find('def _plan_cb(self, req):')
+        cb_body = source[cb_start:]
+        next_def = cb_body.find('\n    def ', 1)
+        if next_def > 0:
+            cb_body = cb_body[:next_def]
+
+        self.assertIn('try:', cb_body,
+                      '_plan_cb should contain try/except for exception handling')
+        self.assertIn('except', cb_body,
+                      '_plan_cb should catch exceptions from the planner')
+
+
+class TestCollisionCheckerUsesStateValidity(unittest.TestCase):
+    """Verify that make_collision_checker uses state validity, not move_group.plan()."""
+
+    def test_collision_checker_does_not_use_plan(self):
+        """make_collision_checker should NOT call move_group.plan()."""
+        node_path = os.path.join(SCRIPTS_DIR, 'trajectory_planner_node.py')
+        with open(node_path) as f:
+            source = f.read()
+
+        fn_start = source.find('def make_collision_checker(')
+        self.assertNotEqual(fn_start, -1)
+        fn_body = source[fn_start:]
+        next_def = fn_body.find('\ndef ', 1)
+        if next_def > 0:
+            fn_body = fn_body[:next_def]
+
+        self.assertNotIn('move_group.plan()', fn_body,
+                         'make_collision_checker should not use move_group.plan()')
+
+    def test_collision_checker_uses_state_validity(self):
+        """make_collision_checker should use GetStateValidity service."""
+        node_path = os.path.join(SCRIPTS_DIR, 'trajectory_planner_node.py')
+        with open(node_path) as f:
+            source = f.read()
+
+        fn_start = source.find('def make_collision_checker(')
+        fn_body = source[fn_start:]
+        next_def = fn_body.find('\ndef ', 1)
+        if next_def > 0:
+            fn_body = fn_body[:next_def]
+
+        self.assertIn('GetStateValidity', fn_body,
+                      'make_collision_checker should use GetStateValidity service')
+
 
 # ---------------------------------------------------------------------------
 # Entry point

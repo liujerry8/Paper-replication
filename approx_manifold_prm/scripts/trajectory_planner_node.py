@@ -69,12 +69,31 @@ from build_approx_graph import UR5eUprightConstraint, UR5E_JOINT_LIMITS
 
 def make_collision_checker(move_group):
     """Return a function that checks a joint config for collision."""
+    from moveit_msgs.srv import GetStateValidity, GetStateValidityRequest
+    from moveit_msgs.msg import RobotState
+    from sensor_msgs.msg import JointState as JointStateMsg
+
+    sv_srv = rospy.ServiceProxy('/check_state_validity', GetStateValidity)
+    sv_srv.wait_for_service(timeout=5.0)
+    joint_names = move_group.get_active_joints()
+    group_name = move_group.get_name()
+
     def check(joints):
-        move_group.set_joint_value_target(joints.tolist())
-        result = move_group.plan()
-        if isinstance(result, tuple):
-            return result[0]
-        return result is not None
+        rs = RobotState()
+        rs.joint_state = JointStateMsg()
+        rs.joint_state.name = joint_names
+        rs.joint_state.position = list(joints)
+
+        req = GetStateValidityRequest()
+        req.robot_state = rs
+        req.group_name = group_name
+
+        try:
+            resp = sv_srv(req)
+            return resp.valid
+        except rospy.ServiceException:
+            return False
+
     return check
 
 
@@ -240,9 +259,17 @@ class TrajectoryPlannerNode:
         time_limit = req.time_limit if req.time_limit > 0 else rospy.get_param('~time_limit', 10.0)
 
         rospy.loginfo(f'Planning from {x_start} to {x_goal}')
-        path, planning_time_ms = self.lazy_planner.plan(
-            x_start, x_goal, time_limit=time_limit
-        )
+
+        try:
+            path, planning_time_ms = self.lazy_planner.plan(
+                x_start, x_goal, time_limit=time_limit
+            )
+        except Exception as e:
+            rospy.logerr(f'Planning failed with exception: {e}')
+            resp.success = False
+            resp.planning_time_ms = 0.0
+            resp.message = f'Planning exception: {e}'
+            return resp
 
         resp.planning_time_ms = planning_time_ms
 
