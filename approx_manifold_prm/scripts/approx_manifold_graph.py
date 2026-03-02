@@ -243,12 +243,18 @@ class ApproximateManifoldGraph:
         self.adjacency = {}
         max_attempts = n_c * 200
         attempts = 0
+        proj_failures = 0
 
         while len(self.vertices) < n_c and attempts < max_attempts:
             attempts += 1
             x0 = self._random_config()
             x = self.project(x0)
             if x is None:
+                proj_failures += 1
+                if attempts % max(1, n_c * 20) == 0:
+                    print(f'  [vertex set] attempt {attempts}/{max_attempts}: '
+                          f'{len(self.vertices)}/{n_c} vertices '
+                          f'({proj_failures} projection failures)')
                 continue
             Phi = self.tangent_basis(x)
             if self._diversity_check(x, Phi):
@@ -256,6 +262,9 @@ class ApproximateManifoldGraph:
                 self.vertices.append(x)
                 self.tangent_bases.append(Phi)
                 self.adjacency[idx] = set()
+                if idx % max(1, n_c // 10) == 0 or idx + 1 == n_c:
+                    print(f'  [vertex set] {idx + 1}/{n_c} vertices added '
+                          f'({attempts} attempts, {proj_failures} projection failures)')
 
         if len(self.vertices) < n_c:
             import warnings
@@ -274,6 +283,8 @@ class ApproximateManifoldGraph:
             return
         V_arr = np.array(self.vertices)
         tree = cKDTree(V_arr)
+        n_vertices = len(self.vertices)
+        log_interval = max(1, n_vertices // 10)
 
         for i, v in enumerate(self.vertices):
             if len(self.adjacency[i]) >= n_e:
@@ -291,6 +302,10 @@ class ApproximateManifoldGraph:
                 if self._valid_edge(v, self.vertices[j]):
                     self.adjacency[i].add(j)
                     self.adjacency[j].add(i)
+            if (i + 1) % log_interval == 0 or i + 1 == n_vertices:
+                total_edges = sum(len(v) for v in self.adjacency.values()) // 2
+                print(f'  [edge set] processed {i + 1}/{n_vertices} vertices '
+                      f'({total_edges} edges so far)')
 
     # ------------------------------------------------------------------
     # Internal helpers

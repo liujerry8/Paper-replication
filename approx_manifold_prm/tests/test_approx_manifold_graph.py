@@ -195,6 +195,33 @@ class TestGraphBuild(unittest.TestCase):
             g._build_vertex_set(n_c=20)
         self.assertEqual(len(g.vertices), 20)
 
+    def test_progress_logging_vertex_set(self):
+        """Build vertex set should print progress messages."""
+        import io
+        from contextlib import redirect_stdout
+        np.random.seed(42)
+        g = make_circle_graph()
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            g._build_vertex_set(n_c=20)
+        output = buf.getvalue()
+        self.assertIn('[vertex set]', output)
+        self.assertIn('vertices added', output)
+
+    def test_progress_logging_edge_set(self):
+        """Build edge set should print progress messages."""
+        import io
+        from contextlib import redirect_stdout
+        np.random.seed(1)
+        g = make_circle_graph()
+        g._build_vertex_set(n_c=15)
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            g._build_edge_set(n_e=2)
+        output = buf.getvalue()
+        self.assertIn('[edge set]', output)
+        self.assertIn('edges so far', output)
+
     def test_save_load(self):
         import tempfile
         np.random.seed(5)
