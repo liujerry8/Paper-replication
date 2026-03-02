@@ -49,6 +49,7 @@ try:
     from moveit_commander import MoveGroupCommander, PlanningSceneInterface
     from moveit_msgs.msg import DisplayTrajectory, RobotTrajectory
     from moveit_msgs.srv import GetMotionPlan, GetMotionPlanRequest
+    from approx_manifold_prm.srv import PlanTrajectory, PlanTrajectoryResponse
     ROS_AVAILABLE = True
 except ImportError:
     ROS_AVAILABLE = False
@@ -158,13 +159,35 @@ class TrajectoryPlannerNode:
         rospy.init_node('trajectory_planner', anonymous=False)
         moveit_commander.roscpp_initialize(sys.argv)
 
-        # Parameters
+        self.ready = False
+        self.init_error = ''
+        self.lazy_planner = None
+        self.move_group = None
+        self.vel_scale = rospy.get_param('~max_velocity_scaling', 1.0)
+        self.acc_scale = rospy.get_param('~max_acceleration_scaling', 1.0)
+
+        # Register the service early so it is always discoverable
+        self.display_pub = rospy.Publisher(
+            '~/planned_path', DisplayTrajectory, queue_size=1
+        )
+        self.srv = rospy.Service('~plan_trajectory', PlanTrajectory, self._plan_cb)
+
+        try:
+            self._initialize_planner()
+            self.ready = True
+            rospy.loginfo('TrajectoryPlannerNode ready.')
+        except Exception as e:
+            self.init_error = str(e)
+            rospy.logerr(f'Planner initialization failed: {e}')
+            rospy.logwarn('Service is registered but will return errors '
+                          'until the planner is properly initialized.')
+
+    def _initialize_planner(self):
+        """Load graph, roadmap and build the LazyPRM planner."""
         graph_file = rospy.get_param('~graph_file', '/tmp/approx_graph.pkl')
         roadmap_file = rospy.get_param('~roadmap_file', '/tmp/roadmap.pkl')
         group_name = rospy.get_param('~planning_group', 'manipulator')
         scene_file = rospy.get_param('~scene_file', '')
-        self.vel_scale = rospy.get_param('~max_velocity_scaling', 1.0)
-        self.acc_scale = rospy.get_param('~max_acceleration_scaling', 1.0)
 
         # MoveIt! setup
         self.move_group = MoveGroupCommander(group_name)
@@ -202,34 +225,31 @@ class TrajectoryPlannerNode:
             connect_k=rospy.get_param('~connect_k', 10),
         )
 
-        # Visualization publisher
-        self.display_pub = rospy.Publisher(
-            '~/planned_path', DisplayTrajectory, queue_size=1
-        )
-
-        # Planning service
-        from approx_manifold_prm.srv import PlanTrajectory, PlanTrajectoryResponse
-        self.srv = rospy.Service('~/plan_trajectory', PlanTrajectory, self._plan_cb)
-        rospy.loginfo('TrajectoryPlannerNode ready.')
-
     def _plan_cb(self, req):
         """Handle a PlanTrajectory service request."""
-        from approx_manifold_prm.srv import PlanTrajectoryResponse
+        resp = PlanTrajectoryResponse()
+
+        if not self.ready:
+            resp.success = False
+            resp.message = f'Planner not initialized: {self.init_error}'
+            return resp
 
         x_start = np.array(req.start_joints)
         x_goal = np.array(req.goal_joints)
 
+        time_limit = req.time_limit if req.time_limit > 0 else rospy.get_param('~time_limit', 10.0)
+
         rospy.loginfo(f'Planning from {x_start} to {x_goal}')
         path, planning_time_ms = self.lazy_planner.plan(
-            x_start, x_goal, time_limit=rospy.get_param('~time_limit', 10.0)
+            x_start, x_goal, time_limit=time_limit
         )
 
-        resp = PlanTrajectoryResponse()
         resp.planning_time_ms = planning_time_ms
 
         if path is None:
             rospy.logwarn('LazyPRM failed to find a path.')
             resp.success = False
+            resp.message = 'LazyPRM failed to find a path.'
             return resp
 
         rospy.loginfo(f'Path found ({len(path)} waypoints, {planning_time_ms:.1f} ms)')
@@ -240,12 +260,14 @@ class TrajectoryPlannerNode:
         if traj is not None:
             resp.trajectory = traj
             resp.success = True
+            resp.message = f'Path found: {len(path)} waypoints in {planning_time_ms:.1f} ms'
             # Publish for RViz
             display = DisplayTrajectory()
             display.trajectory.append(traj)
             self.display_pub.publish(display)
         else:
             resp.success = False
+            resp.message = 'Time parameterization failed.'
 
         return resp
 
