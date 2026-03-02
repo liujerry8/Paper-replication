@@ -29,6 +29,10 @@ try:
     import rospy
     import moveit_commander
     from geometry_msgs.msg import Pose
+    from moveit_msgs.srv import GetPositionFK, GetPositionFKRequest
+    from moveit_msgs.msg import RobotState
+    from sensor_msgs.msg import JointState
+    from std_msgs.msg import Header
     ROS_AVAILABLE = True
 except ImportError:
     ROS_AVAILABLE = False
@@ -70,14 +74,28 @@ class UR5eUprightConstraint:
     def __init__(self, move_group=None, delta=0.01):
         self.move_group = move_group
         self.delta = delta
+        self._fk_service = None
+        self._joint_names = None
+        self._tip_link = None
+
+        if self.move_group is not None:
+            self._joint_names = self.move_group.get_active_joints()
+            self._tip_link = self.move_group.get_end_effector_link()
+            rospy.wait_for_service('/compute_fk', timeout=10.0)
+            self._fk_service = rospy.ServiceProxy('/compute_fk', GetPositionFK)
 
     def fk(self, joints):
         """Return (r_x, r_y) end-effector roll/pitch from joint angles."""
-        if self.move_group is None:
+        if self._fk_service is None:
             # Placeholder FK for testing without ROS: returns small random values
             return np.zeros(2)
-        self.move_group.set_joint_value_target(joints.tolist())
-        pose: Pose = self.move_group.get_current_pose().pose
+        req = GetPositionFKRequest()
+        req.header = Header(frame_id='base_link')
+        req.fk_link_names = [self._tip_link]
+        req.robot_state.joint_state.name = self._joint_names
+        req.robot_state.joint_state.position = joints.tolist()
+        resp = self._fk_service(req)
+        pose = resp.pose_stamped[0].pose
         # Convert quaternion to roll/pitch
         from tf.transformations import euler_from_quaternion
         q = [pose.orientation.x, pose.orientation.y,
