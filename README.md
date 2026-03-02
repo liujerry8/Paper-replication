@@ -309,8 +309,8 @@ sudo apt-get install -y \
 pip3 install numpy scipy networkx scikit-learn pyyaml
 ```
 
-> 如果 `ros-noetic-ur5e-moveit-config` 无法通过 apt 安装，请从源码安装
-> `universal_robot` 元包（见下方 0b）。
+> 如果 `ros-noetic-ur5e-moveit-config` 无法通过 apt 安装，请在步骤 0b 中
+> 通过 `git clone` 从源码安装 `universal_robot` 元包。
 
 **0b. 创建 Catkin 工作空间 / Create Catkin Workspace**
 
@@ -773,7 +773,8 @@ A: 确保 Terminal 2 中 MoveIt! 已完全启动。等待看到 `You can start p
 **Q: 规划时间远超 67 ms？**
 
 A: 首次查询可能较慢（冷启动）。多次查询后时间会趋于稳定。
-确保 `n_c ≥ 1000`、`n_e ≥ 5`，且路线图构建时间 `max_time ≥ 60s`。
+确保 `n_c ≥ 1000`、`n_e ≥ 5`，且路线图构建时间充足（默认 `max_time=300s`，
+最低建议不少于 60s）。
 
 **Q: 路线图构建时碰撞检测很慢？**
 
