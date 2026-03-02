@@ -65,7 +65,6 @@ class TestServiceImportLocation(unittest.TestCase):
 
     def test_plan_trajectory_import_in_top_level_block(self):
         """PlanTrajectory import should be in the top-level try/except block."""
-        import ast
         node_path = os.path.join(SCRIPTS_DIR, 'trajectory_planner_node.py')
         with open(node_path) as f:
             source = f.read()

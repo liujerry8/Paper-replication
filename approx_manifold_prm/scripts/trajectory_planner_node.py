@@ -163,7 +163,6 @@ class TrajectoryPlannerNode:
         self.init_error = ''
         self.lazy_planner = None
         self.move_group = None
-        self.display_pub = None
         self.vel_scale = rospy.get_param('~max_velocity_scaling', 1.0)
         self.acc_scale = rospy.get_param('~max_acceleration_scaling', 1.0)
 
