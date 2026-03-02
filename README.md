@@ -393,6 +393,8 @@ approx_manifold_prm/
 │   ├── run_planner.py             # End-to-end CLI (no ROS needed)
 │   ├── build_approx_graph.py      # CLI: build graph (offline)
 │   ├── build_roadmap.py           # CLI: build roadmap (offline, --scene arg)
+│   ├── traditional_prm.py        # Baseline: traditional PRM (no manifold)
+│   ├── benchmark.py              # Benchmark: AM-PRM vs Traditional PRM
 │   └── trajectory_planner_node.py # ROS node: online planning service
 ├── srv/
 │   └── PlanTrajectory.srv         # ROS service definition
@@ -401,7 +403,8 @@ approx_manifold_prm/
 │       └── __init__.py
 └── tests/
     ├── test_approx_manifold_graph.py  # Unit tests (no ROS required)
-    └── test_scene_loader.py           # Scene loading & collision checker tests
+    ├── test_scene_loader.py           # Scene loading & collision checker tests
+    └── test_benchmark.py             # Benchmark & traditional PRM tests
 ```
 
 ---
@@ -458,6 +461,132 @@ rosrun moveit_commander moveit_commander_cmdline.py
 > planner PRMstar
 > go [1.0 -1.0 0.5 -1.0 0.5 0.0]
 ```
+
+---
+
+## 速度基准测试 / Speed Benchmark
+
+To verify the construction speed advantage of the proposed AM-PRM algorithm,
+a benchmark script (`scripts/benchmark.py`) is provided that compares AM-PRM
+against a **Traditional PRM** baseline (uniform C-space sampling, no manifold
+approximation).  This follows the experimental methodology in Section 2.3 of
+the paper.
+
+### 实验方法 / Experimental Methodology
+
+The benchmark implements the paper's comparison protocol:
+
+1. **Control variable**: Both methods share the same scene, start/goal
+   configurations, collision checker, and constraint function.
+2. **AM-PRM pipeline** (proposed):
+   - Phase 1: Build approximate manifold graph G = (V, E) with diversity checks
+     (Algorithms 2.1 + 2.2) — timed as **graph build time**.
+   - Phase 2: Build PRM* roadmap M on G — timed as **roadmap build time**.
+   - Phase 3: Online LazyPRM query on M — timed as **planning time**.
+3. **Traditional PRM baseline**:
+   - Sample configurations uniformly in C-space, project onto the constraint
+     manifold, and build a PRM roadmap directly — timed as **roadmap build time**.
+   - Query via Dijkstra — timed as **planning time**.
+4. Each method is run for multiple independent **trials** to compute statistics
+   (mean ± std).
+5. **Metrics reported** (matching Table 2.2 in the paper):
+   - Offline construction time (graph + roadmap build)
+   - Online planning time (ms)
+   - Success rate (%)
+   - Path length (joint-space L2 norm, as a quality proxy)
+
+### 生成近似图后的实验流程 / Post-Graph Experiment Procedure
+
+After building the approximate manifold graph G (Phase 1), the paper describes
+the following experimental steps (Section 2.3.2):
+
+```
+ Phase 1 (offline, once)         Phase 2 (offline, once)          Phase 3 (online, per query)
+┌───────────────────────┐       ┌───────────────────────┐       ┌───────────────────────────┐
+│ Build Approx. Graph G │──────▶│ Build PRM* Roadmap M  │──────▶│ LazyPRM Query             │
+│ (n_c vertices, n_e    │       │ on G with collision   │       │ • Connect start/goal to M │
+│  edges per vertex)    │       │ checking against scene│       │ • Dijkstra shortest path  │
+│                       │       │ (stop on convergence  │       │ • Lazy edge validation    │
+│ ⏱ Record build time  │       │  or time limit)       │       │ • Remove invalid edges    │
+│ 📏 Record |V|, |E|   │       │                       │       │ • Re-search if needed     │
+│ 💾 Record memory      │       │ ⏱ Record build time  │       │                           │
+└───────────────────────┘       │ 📏 Record |M_V|, |M_E│       │ ⏱ Record planning time   │
+                                └───────────────────────┘       │ 📏 Record path length    │
+                                                                │ ✅ Record success/fail   │
+                                                                └───────────────────────────┘
+```
+
+For the **Traditional PRM** baseline, Phases 1 and 2 are replaced by a single
+roadmap construction step that samples uniformly in C-space (with optional
+constraint projection).  This makes the comparison fair: both methods produce
+a roadmap, and the online query is measured separately.
+
+### 快速运行 / Quick Start (No ROS Required)
+
+**Toy benchmark** (2-D unit-circle constraint, fast):
+
+```bash
+cd approx_manifold_prm
+python3 scripts/benchmark.py --mode toy --trials 5 --seed 42
+```
+
+**Scene benchmark** (UR5e + YAML scene file):
+
+```bash
+python3 scripts/benchmark.py --mode scene \
+    --scene  scenes/sim_scene_1.yaml \
+    --start  "0,0,0,0,0,0" \
+    --goal   "0.3,-0.2,0.1,-0.1,0.1,0" \
+    --n_c 200 --n_e 3 --trials 5
+```
+
+**Save results as JSON** for further analysis:
+
+```bash
+python3 scripts/benchmark.py --mode toy --trials 10 \
+    --seed 42 --output /tmp/benchmark_results.json
+```
+
+### 基准参数 / Benchmark Arguments
+
+| Argument | Default | Description |
+|----------|---------|-------------|
+| `--mode` | `toy` | `toy` (2-D circle) or `scene` (UR5e + YAML) |
+| `--scene` | — | Path to YAML scene file (required for `scene` mode) |
+| `--start` | — | Start joints, comma-separated (required for `scene` mode) |
+| `--goal` | — | Goal joints, comma-separated (required for `scene` mode) |
+| `--n_c` | 200 | AM-PRM graph vertex count |
+| `--n_e` | 3 | AM-PRM max edges per vertex |
+| `--n_samples` | = n_c | Traditional PRM sample count |
+| `--roadmap_time` | 10 s | AM-PRM roadmap build budget |
+| `--trad_build_time` | 30 s | Traditional PRM build budget |
+| `--plan_time` | 10 s | Online planning time limit |
+| `--trials` | 5 | Number of independent trials per method |
+| `--seed` | — | Base random seed (trial *i* uses seed + *i*) |
+| `--output` | — | Save JSON results to this path |
+
+### 预期输出 / Expected Output
+
+```
+========================================================================
+  Benchmark Comparison: AM-PRM vs Traditional PRM
+========================================================================
+  Metric                                     AM-PRM    Traditional PRM
+  --------------------------------------------------------------------
+  Trials                                          5                  5
+  Success Rate                               100.0%             100.0%
+    Graph Build Time (s)               21.70 ± 0.08                N/A
+    Roadmap Build Time (s)              0.04 ± 0.00        0.15 ± 0.00
+  Offline Build Time (s)               21.74 ± 0.09        0.15 ± 0.00
+  Online Plan Time (ms)                 2.72 ± 0.21        3.94 ± 0.18
+  Path Length (rad)                     2.39 ± 0.22        3.10 ± 0.01
+========================================================================
+```
+
+> **Note:** AM-PRM's offline graph build is a one-time cost; once built, the
+> graph is reused across scenes and queries.  The key metric from the paper is
+> **online planning time**, where AM-PRM achieves significantly faster query
+> performance (67 ms vs 5525 ms for PRM* in the paper's Table 2.2).
 
 ---
 
