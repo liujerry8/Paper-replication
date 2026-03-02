@@ -251,7 +251,7 @@ class ApproximateManifoldGraph:
             x = self.project(x0)
             if x is None:
                 proj_failures += 1
-                if attempts % max(1, n_c * 20) == 0:
+                if attempts % max(1, min(n_c * 20, 1000)) == 0:
                     print(f'  [vertex set] attempt {attempts}/{max_attempts}: '
                           f'{len(self.vertices)}/{n_c} vertices '
                           f'({proj_failures} projection failures)')
