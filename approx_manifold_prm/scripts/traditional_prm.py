@@ -94,7 +94,7 @@ class TraditionalPRM:
             Target number of collision-free samples to add.
         k_neighbours : int or None
             Number of nearest neighbours to attempt connections.  If None,
-            uses k = ceil(2e * log(n)) (PRM* formula).
+            uses k = ceil(2·e·log(n)) where e ≈ 2.718 (PRM* formula).
         max_time : float
             Wall-clock time budget in seconds.
 

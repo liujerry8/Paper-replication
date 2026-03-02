@@ -320,7 +320,11 @@ def print_comparison_table(am_stats, trad_stats):
 # ---------------------------------------------------------------------------
 
 def parse_joints(s):
-    vals = [float(v.strip()) for v in s.split(',')]
+    try:
+        vals = [float(v.strip()) for v in s.split(',')]
+    except ValueError:
+        raise argparse.ArgumentTypeError(
+            f"Invalid joint values (could not convert to float): {s!r}")
     if len(vals) != 6:
         raise argparse.ArgumentTypeError(
             f"Expected 6 joint values, got {len(vals)}: {s!r}")

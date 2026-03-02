@@ -308,6 +308,9 @@ class TestPathLength(unittest.TestCase):
     def test_none_path(self):
         self.assertAlmostEqual(_path_length(None), 0.0)
 
+    def test_empty_list_path(self):
+        self.assertAlmostEqual(_path_length([]), 0.0)
+
     def test_multi_segment(self):
         path = [np.array([0.0]), np.array([1.0]), np.array([3.0])]
         self.assertAlmostEqual(_path_length(path), 3.0, places=6)
