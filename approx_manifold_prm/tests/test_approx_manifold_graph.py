@@ -380,6 +380,43 @@ class TestLazyPRM(unittest.TestCase):
                 np.testing.assert_allclose(path[0], x_s, atol=1e-6)
                 np.testing.assert_allclose(path[-1], x_g, atol=1e-6)
 
+    def test_repeated_plans_do_not_leak_edge_validity(self):
+        """Edge validity state must not leak between successive plan() calls."""
+        lazy, g = self._build_planner()
+        if len(g.vertices) < 2:
+            self.skipTest('Not enough vertices')
+
+        x_s = g.vertices[0]
+        x_g = g.vertices[-1]
+
+        # Run several planning calls and verify the base roadmap edge validity
+        # stays at None (unknown) after each call.
+        for _ in range(5):
+            lazy.plan(x_s, x_g)
+            for u, v in lazy.roadmap.edges():
+                self.assertIsNone(
+                    lazy.roadmap[u][v].get('valid'),
+                    'Edge validity leaked from plan() back to the base roadmap')
+
+    def test_repeated_plans_give_consistent_results(self):
+        """Repeated plan() calls should return consistent success/failure."""
+        lazy, g = self._build_planner()
+        if len(g.vertices) < 2:
+            self.skipTest('Not enough vertices')
+
+        x_s = g.vertices[0]
+        x_g = g.vertices[-1]
+
+        results = []
+        for _ in range(10):
+            path, _ = lazy.plan(x_s, x_g)
+            results.append(path is not None)
+
+        # All calls should give the same result (no degradation over time)
+        self.assertTrue(
+            all(r == results[0] for r in results),
+            f'Inconsistent results across repeated plan() calls: {results}')
+
 
 # ---------------------------------------------------------------------------
 # Entry point

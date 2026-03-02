@@ -22,6 +22,7 @@ Usage in the paper (Section 2.2.5 + 2.3.2):
      trajectory with velocity and acceleration profiles.
 """
 
+import copy
 import time
 import numpy as np
 import networkx as nx
@@ -92,7 +93,7 @@ class LazyPRM:
         """
         t0 = time.time()
         START, GOAL = 'start', 'goal'
-        working = self.roadmap.copy()
+        working = copy.deepcopy(self.roadmap)
 
         # Connect start and goal to the roadmap
         if not self._connect_endpoints(working, START, x_start):
